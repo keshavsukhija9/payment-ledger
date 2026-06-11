@@ -1,12 +1,12 @@
-from pydantic import BaseModel, UUID4, field_validator
+from pydantic import BaseModel, field_validator
 from decimal import Decimal
 from datetime import datetime
 from typing import Optional
-import uuid
+from uuid import UUID
 
 class TransferRequest(BaseModel):
-    sender_id: UUID4
-    receiver_id: UUID4
+    sender_id: UUID
+    receiver_id: UUID
     amount: Decimal
 
     @field_validator('amount')
