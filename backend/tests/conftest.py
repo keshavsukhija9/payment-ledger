@@ -1,37 +1,25 @@
 import asyncio
 import pytest
 import pytest_asyncio
-import asyncpg
 from httpx import AsyncClient, ASGITransport
 from app.main import app
-from app.database import create_pool, close_pool, get_connection
-
-TEST_DB_URL = "postgresql://ledger_user:ledger_pass@localhost:5432/ledger"
-
-@pytest.fixture(scope="session")
-def event_loop():
-    loop = asyncio.get_event_loop_policy().new_event_loop()
-    yield loop
-    loop.close()
-
-@pytest_asyncio.fixture(scope="session", autouse=True)
-async def setup_test_db():
-    await create_pool()
-    yield
-    await close_pool()
+import app.database as db_module
+import app.redis_client as redis_module
 
 @pytest_asyncio.fixture
 async def client():
+    # Fresh pool and redis for every test
+    await db_module.create_pool()
+    redis_module._client = None
+
     async with AsyncClient(
         transport=ASGITransport(app=app),
         base_url="http://test"
     ) as c:
         yield c
 
-@pytest_asyncio.fixture(autouse=True)
-async def clean_db():
-    yield
-    async with get_connection() as conn:
+    # Cleanup DB state
+    async with db_module.get_connection() as conn:
         await conn.execute("TRUNCATE ledger_entries, ledger_audit, idempotency_keys CASCADE")
         await conn.execute("""
             UPDATE accounts SET balance = CASE
@@ -42,3 +30,13 @@ async def clean_db():
                 ELSE balance
             END
         """)
+
+    # Teardown connections
+    if redis_module._client:
+        try:
+            await redis_module._client.aclose()
+        except Exception:
+            pass
+        redis_module._client = None
+    await db_module.close_pool()
+    db_module._pool = None
