@@ -2,6 +2,7 @@ from pydantic import BaseModel, UUID4, field_validator
 from decimal import Decimal
 from datetime import datetime
 from typing import Optional
+import uuid
 
 class TransferRequest(BaseModel):
     sender_id: UUID4
@@ -30,18 +31,32 @@ class TransferResponse(BaseModel):
     receiver_id: str
 
 class AccountResponse(BaseModel):
+    model_config = {"from_attributes": True}
+
     id: str
     owner_name: str
     balance: Decimal
     created_at: datetime
 
+    @field_validator('id', mode='before')
+    @classmethod
+    def coerce_uuid(cls, v):
+        return str(v)
+
 class LedgerEntryResponse(BaseModel):
+    model_config = {"from_attributes": True}
+
     id: str
     account_id: str
     amount: Decimal
     entry_type: str
     transfer_id: str
     created_at: datetime
+
+    @field_validator('id', 'account_id', 'transfer_id', mode='before')
+    @classmethod
+    def coerce_uuid(cls, v):
+        return str(v)
 
 class MetricsResponse(BaseModel):
     total_transfers: int
