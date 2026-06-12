@@ -1,122 +1,49 @@
 import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import { useAccounts } from './hooks/useAccounts'
+import { useLedger } from './hooks/useLedger'
+import { useMetrics } from './hooks/useMetrics'
+import { MetricsBar } from './components/MetricsBar'
+import { AccountsList } from './components/AccountsList'
+import { TransferForm } from './components/TransferForm'
+import { LedgerTable } from './components/LedgerTable'
+import { IntegrityBanner } from './components/IntegrityBanner'
+import { Toast } from './components/Toast'
 
-function App() {
-  const [count, setCount] = useState(0)
+export default function App() {
+  const { accounts, loading: accountsLoading } = useAccounts(3000)
+  const { entries, loading: ledgerLoading } = useLedger(3000)
+  const { metrics } = useMetrics(5000)
+  const [toast, setToast] = useState({ message: '', type: '' })
+
+  const handleSuccess = (data, idemKey) => {
+    setToast({ message: `Transfer ${data.transfer_id.slice(0,8)}… succeeded | Key: ${idemKey.slice(0,8)}…`, type: 'success' })
+  }
+
+  const handleError = (msg) => {
+    setToast({ message: msg, type: 'error' })
+  }
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
+    <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '24px', fontFamily: 'system-ui, sans-serif' }}>
+      <h1 style={{ marginBottom: '4px' }}>Payment Ledger</h1>
+      <p style={{ color: '#6c757d', marginTop: 0, marginBottom: '24px' }}>
+        Idempotency · Double-Entry · Concurrent Safety
+      </p>
+
+      <IntegrityBanner metrics={metrics} />
+      <MetricsBar metrics={metrics} />
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '24px' }}>
+        <div>
+          <TransferForm accounts={accounts} onSuccess={handleSuccess} onError={handleError} />
+          <AccountsList accounts={accounts} loading={accountsLoading} />
         </div>
         <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
+          <LedgerTable entries={entries} loading={ledgerLoading} />
         </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+      </div>
 
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
+      <Toast message={toast.message} type={toast.type} onDismiss={() => setToast({ message: '', type: '' })} />
+    </div>
   )
 }
-
-export default App
